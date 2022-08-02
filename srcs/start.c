@@ -30,10 +30,10 @@ int main(int ac, char **av) {
     ret = injection_x64(file, size);
   else
     ret = injection_x32();
-  if (ret < INJECTSIZE)
+  if (ret < PAYLOAD_SIZE)
     return exit_error(ret, -1, file, size, av[0]);
 
-  if ((fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0644)) == -1)
+  if ((fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0744)) == -1)
     return exit_error(OOPS_OPEN, -1, file, size, av[0]);
   write(fd, file, size);
   munmap(file, size);

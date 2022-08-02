@@ -23,28 +23,30 @@ CCFLAGS =
 
 ##### SRCS #####
 SRCS = $(addprefix $(SRCPATH)/, start.c error.c injection_x64.c)
+NASMSRCS = $(addprefix $(SRCPATH)/, payload.s)
 
 OBJ = $(SRCS:$(SRCPATH)/%.c=$(OBJPATH)/%.o)
+NASMOBJ = $(NASMSRCS:$(SRCPATH)/%.s=$(OBJPATH)/%.o)
 
 
 ### RULES ###
 
-all: mk_objdir $(NAME)
+all: $(NAME)
 
-
-mk_objdir:
-	@rm -f woody
-	@if [ ! -d $(OBJPATH) ]; then mkdir $(OBJPATH); fi
-
-
-$(NAME): $(LFT) $(OBJ)
+$(NAME): $(LFT) $(OBJPATH) $(NASMOBJ) $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $(OBJ) $(LFT)
+
+$(OBJPATH):
+	@if [ ! -d $(OBJPATH) ]; then mkdir $(OBJPATH); fi
 
 $(LFT):
 	@make -C $(LIBFTPATH)
 
 $(OBJPATH)/%.o: $(SRCPATH)/%.c $(HEADERS)
-	$(CC) $(CCFLAGS) $(INC) -c $< -o $@
+	$(CC) $(CCFLAGS) $(INC) -c $< -o $@ -DPAYLOAD=\"`/usr/bin/hexdump -v -e '"\\\x" 1/1 "%02x"' $(OBJPATH)/payload.o`\"
+
+$(OBJPATH)/%.o: $(SRCPATH)/%.s
+	nasm -f bin -o $@ $<
 
 ### CLEAN ###
 .PHONY: sanitize clean fclean re
@@ -52,7 +54,7 @@ $(OBJPATH)/%.o: $(SRCPATH)/%.c $(HEADERS)
 clean:
 	@make clean -C $(LIBFTPATH)
 	rm -f woody
-	rm -rf $(OBJ)
+	rm -rf $(OBJ) $(NASMOBJ)
 
 fclean: clean
 	@make fclean -C $(LIBFTPATH)

@@ -13,7 +13,11 @@
 
 #include "libft.h"
 
-#define INJECTSIZE 100
+#ifndef PAYLOAD
+#define PAYLOAD ""
+#endif
+
+#define PAYLOAD_SIZE sizeof(PAYLOAD)
 
 #define OOPS_NB 12
 #define OOPS_SIZE 48
@@ -38,6 +42,6 @@ int exit_error(int err, int fd, void *file, size_t size, char *name);
 int oops_error(unsigned int err);
 
 /* injection_x64 */
-unsigned int injection_x64(const Elf64_Ehdr *file, const int filesize);
+unsigned int injection_x64(Elf64_Ehdr *file, const int filesize);
 
 #endif

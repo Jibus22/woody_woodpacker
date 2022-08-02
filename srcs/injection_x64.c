@@ -3,7 +3,8 @@
 static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
   return (OOPS_BAD_ELF *
           (filesize < sizeof(Elf64_Ehdr) ||
-           file->e_ehsize != sizeof(Elf64_Ehdr) || file->e_type != ET_EXEC ||
+           file->e_ehsize != sizeof(Elf64_Ehdr) ||
+           (file->e_type != ET_EXEC && file->e_type != ET_DYN) ||
            sizeof(Elf64_Phdr) != file->e_phentsize ||
            (file->e_phoff + (file->e_phnum * file->e_phentsize)) > filesize ||
            file->e_shnum <= file->e_shstrndx));
@@ -12,9 +13,10 @@ static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
 static int sanitize_phdr(const Elf64_Ehdr *file, const Elf64_Phdr *phdr,
                          const int filesize, int i) {
   if (i == file->e_phnum) return OOPS_NO_LOAD;
-  return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz ||
+  if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
+  return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz /*||
                            file->e_entry < phdr[i].p_vaddr ||
-                           file->e_entry > phdr[i].p_vaddr + phdr[i].p_memsz));
+                           file->e_entry > phdr[i].p_vaddr + phdr[i].p_memsz*/));
 }
 
 static int sanitize_shdr(const Elf64_Ehdr *file, const Elf64_Shdr *shdr,
@@ -23,40 +25,10 @@ static int sanitize_shdr(const Elf64_Ehdr *file, const Elf64_Shdr *shdr,
   return (OOPS_BAD_SHDR * 0);
 }
 
-static unsigned int find_codecave(const Elf64_Ehdr *file, Elf64_Off off,
-                                  Elf64_Xword size) {
-  unsigned int current_cave = 0, biggest_cave = 0;
-  Elf64_Off cave_offset;
-
-  printf("offset: %lu, size: %lu, ", off, size);
-  while (size) {
-    if (((char *)file)[off + size] == '\0') {
-      current_cave++;
-      biggest_cave = ((current_cave > biggest_cave) * current_cave) +
-                     ((current_cave <= biggest_cave) * biggest_cave);
-    }
-    else {
-      if (current_cave == biggest_cave) cave_offset = off + size;
-      current_cave = 0;
-    }
-    size--;
-  }
-  printf("cave_offset: %lu\n", cave_offset);
-  return biggest_cave;
-}
-
-unsigned int injection_x64(const Elf64_Ehdr *file, const int filesize) {
-  Elf64_Phdr *phdr;
+static unsigned int get_text_data(const Elf64_Ehdr *file, const int filesize) {
   Elf64_Shdr *shdr;
   char *name;
-  int i, j, ret;
-
-  if ((ret = sanitize_hdr(file, filesize))) return ret;
-
-  phdr = (Elf64_Phdr *)((char *)file + file->e_phoff);
-  for (i = 0; i < file->e_phnum; i++)
-    if (phdr[i].p_type == PT_LOAD && phdr[i].p_flags & PF_X) break;
-  if ((ret = sanitize_phdr(file, phdr, filesize, i))) return ret;
+  int j, ret;
 
   shdr = (Elf64_Shdr *)((char *)file + file->e_shoff);
   name = (char *)((char *)file + shdr[file->e_shstrndx].sh_offset);
@@ -66,10 +38,33 @@ unsigned int injection_x64(const Elf64_Ehdr *file, const int filesize) {
         !ft_strncmp(".text\0", name + shdr[j].sh_name, 6))
       break;
   if ((ret = sanitize_shdr(file, shdr, filesize, j))) return ret;
+  return ret;
+}
 
-  ret = find_codecave(file, phdr[i].p_offset, phdr[i].p_filesz);
-  ret = OOPS_NOCAVE * (ret < INJECTSIZE) + ret * (ret >= INJECTSIZE);
+unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
+  Elf64_Phdr *phdr;
+  Elf64_Off new_entry;
+  int i, ret;
 
-  printf("codecave found. Size: %d\n", ret);
+  if ((ret = sanitize_hdr(file, filesize))) return ret;
+
+  phdr = (Elf64_Phdr *)((char *)file + file->e_phoff);
+  for (i = 0; i < file->e_phnum; i++)
+    if (phdr[i].p_type == PT_LOAD && phdr[i].p_flags & PF_X) break;
+  if ((ret = sanitize_phdr(file, phdr, filesize, i))) return ret;
+  if ((ret = sanitize_phdr(file, phdr, filesize, i + 1))) return ret;
+  ret = phdr[i + 1].p_vaddr - (phdr[i].p_vaddr + phdr[i].p_memsz);
+
+  printf("cave: %d\n", ret);
+
+  file->e_entry = phdr[i].p_vaddr + phdr[i].p_filesz;
+  new_entry = phdr[i].p_offset + phdr[i].p_filesz;
+  char code[] = PAYLOAD;
+  ft_memcpy((void *)file + new_entry, code, sizeof(code));
+  phdr[i].p_filesz += sizeof(code);
+  phdr[i].p_memsz += sizeof(code);
+
+  ret = OOPS_NOCAVE * (ret < PAYLOAD_SIZE) + ret * (ret >= PAYLOAD_SIZE);
+
   return ret;
 }
