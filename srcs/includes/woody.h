@@ -17,7 +17,7 @@
 #define PAYLOAD ""
 #endif
 
-#define PAYLOAD_SIZE sizeof(PAYLOAD)
+#define PAYLOAD_SIZE (sizeof(PAYLOAD) - 1)
 
 #define OOPS_NB 12
 #define OOPS_SIZE 48

