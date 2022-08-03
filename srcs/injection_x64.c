@@ -67,8 +67,8 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   ft_memcpy((void *)file + new_entry + (PAYLOAD_SIZE - sizeof(Elf64_Off)),
             &old_entry, sizeof(Elf64_Off));
 
-  phdr[i].p_filesz += sizeof(code);
-  phdr[i].p_memsz += sizeof(code);
+  phdr[i].p_filesz += PAYLOAD_SIZE;
+  phdr[i].p_memsz += PAYLOAD_SIZE;
 
   ret = OOPS_NOCAVE * (ret < PAYLOAD_SIZE) + ret * (ret >= PAYLOAD_SIZE);
 

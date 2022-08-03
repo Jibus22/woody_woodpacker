@@ -42,7 +42,7 @@ $(OBJPATH):
 $(LFT):
 	@make -C $(LIBFTPATH)
 
-$(OBJPATH)/%.o: $(SRCPATH)/%.c $(HEADERS)
+$(OBJPATH)/%.o: $(SRCPATH)/%.c srcs/payload.s $(HEADERS)
 	$(CC) $(CCFLAGS) $(INC) -c $< -o $@ -DPAYLOAD=\"`/usr/bin/hexdump -v -e '"\\\x" 1/1 "%02x"' $(OBJPATH)/payload.o`\"
 
 $(OBJPATH)/%.o: $(SRCPATH)/%.s

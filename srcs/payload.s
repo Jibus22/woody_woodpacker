@@ -1,5 +1,4 @@
 bits 64
-default rel
 global _start
 
 ;     rdi   rsi    rdx
@@ -7,7 +6,8 @@ global _start
 ;write(fd,   msg,   len);
 
 _start:
-            push    rdx
+            push	  rdx             ;dunno why it segf if I don't push/pop rdx
+
             xor     eax, eax
             xor     edx, edx
             mov     dl, 14          ;3eme argument (rdx)
@@ -16,7 +16,8 @@ _start:
             lea     rsi, [rel msg]  ;2eme arg
             syscall
 
-            pop     rdx
+            pop	    rdx
+
 						xor     rax, rax
 						add     rax, qword [rsi + (entry - msg)] ;avoid NULL bytes
 						push    rax
