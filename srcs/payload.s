@@ -18,10 +18,12 @@ _start:
 
             pop	    rdx
 
-						xor     rax, rax
-						add     rax, qword [rsi + (entry - msg)] ;avoid NULL bytes
-						push    rax
+						lea     rax, [rsi + (_start - msg)]        ;tricky maths to avoid
+						sub     rax, [rsi + (payload_entry - msg)] ;NULL bytes. rsi == msg
+						add     rax, [rsi + (main_entry - msg)]    ;Calculates the relative
+						push    rax                                ;main entry point
 						ret
 
-msg         db "....WOODY....",10
-entry       dq 0xdeadbeefdeadbeef
+msg           db "....WOODY....",10
+main_entry    dq 0x1a1b2a2b3a3b4a4b
+payload_entry dq 0x5a5b6a6b7a7b8a8b

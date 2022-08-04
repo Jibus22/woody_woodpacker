@@ -37,6 +37,11 @@ typedef enum {
   OOPS_NO_TEXT,
 } e_oops;
 
+typedef struct s_patch {
+  Elf64_Off main_entry;
+  Elf64_Off payload_entry;
+}              t_patch;
+
 /* error.c */
 int exit_error(int err, int fd, void *file, size_t size, char *name);
 int oops_error(unsigned int err);
