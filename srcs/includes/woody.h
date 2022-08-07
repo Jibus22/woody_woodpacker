@@ -19,6 +19,8 @@
 
 #define PAYLOAD_SIZE (sizeof(PAYLOAD) - 1)
 
+#define KEYLEN 64
+
 #define OOPS_NB 12
 #define OOPS_SIZE 48
 
@@ -40,6 +42,8 @@ typedef enum {
 typedef struct s_patch {
   Elf64_Off main_entry;
   Elf64_Off payload_entry;
+  Elf64_Off key_size;
+  char      key[KEYLEN];
 }              t_patch;
 
 /* error.c */
