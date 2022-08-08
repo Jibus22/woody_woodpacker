@@ -6,7 +6,8 @@
 /*   return (OOPS_BAD_SHDR * 0); */
 /* } */
 
-/* static unsigned int get_text_data(const Elf64_Ehdr *file, const int filesize) { */
+/* static unsigned int get_text_data(const Elf64_Ehdr *file, const int filesize)
+ * { */
 /*   Elf64_Shdr *shdr; */
 /*   char *name; */
 /*   int j, ret; */
@@ -14,7 +15,8 @@
 /*   shdr = (Elf64_Shdr *)((char *)file + file->e_shoff); */
 /*   name = (char *)((char *)file + shdr[file->e_shstrndx].sh_offset); */
 /*   for (j = 0; j < file->e_shnum; j++) */
-/*     if (shdr[j].sh_type == SHT_PROGBITS && shdr[j].sh_flags & SHF_EXECINSTR && */
+/*     if (shdr[j].sh_type == SHT_PROGBITS && shdr[j].sh_flags & SHF_EXECINSTR
+ * && */
 /*         shdr[j].sh_flags & SHF_ALLOC && */
 /*         !ft_strncmp(".text\0", name + shdr[j].sh_name, 6)) */
 /*       break; */
@@ -32,11 +34,11 @@ static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
            file->e_shnum <= file->e_shstrndx));
 }
 
-static int sanitize_exec_load_segment(const Elf64_Ehdr *file,
-                                      const Elf64_Phdr *phdr,
+static int sanitize_exec_load_segment(const Elf64_Ehdr *file, Elf64_Phdr *phdr,
                                       const int filesize, int i) {
   if (i == file->e_phnum) return OOPS_NO_LOAD;
   if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
+  phdr[i].p_flags |= PF_W;  // TODO delete this and replace with mprotect in payload
   return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz ||
                            file->e_entry < phdr[i].p_vaddr ||
                            file->e_entry > phdr[i].p_vaddr + phdr[i].p_memsz));
@@ -51,25 +53,28 @@ static int sanitize_scnd_load_segment(const Elf64_Ehdr *file,
 }
 
 static int get_random_key(char *key) {
-	int fd, ret;
+  int fd, ret;
 
-	fd = open("/dev/urandom", O_RDONLY);
-	if (fd == -1) return 1;
-	ret = read(fd, key, KEYLEN);
-	if (ret == -1) return 1;
-	close(fd);
-	return 0;
+  fd = open("/dev/urandom", O_RDONLY);
+  if (fd == -1) return OOPS_OPEN;
+  ret = read(fd, key, KEYLEN);
+  if (ret == -1) return OOPS_READ;
+  close(fd);
+  return 0;
 }
 
 static int encrypt(Elf64_Ehdr *file, t_patch *patch, Elf64_Addr vaddr) {
-  int j = 0;
+  int j;
   unsigned long len = patch->payload_entry - patch->main_entry;
   char *ptr = (char *)file + (patch->main_entry - vaddr);
 
-  if (get_random_key(patch->key)) return 1;
+  if ((j = get_random_key(patch->key))) return j;
+  ft_strncpy(patch->key,
+             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789()*",
+             64);
   for (int i = 0; i < len; i++) {
     j = (0 * (j == patch->key_size)) + ((j + 1) * (j < patch->key_size));
-    ptr[i] ^= (patch->key)[j];
+    /* ptr[i] ^= (patch->key)[j]; */
   }
   return 0;
 }
@@ -90,8 +95,9 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
 
   for (j = i + 1; j < file->e_phnum; j++)
     if (phdr[j].p_type == PT_LOAD) break;
-if ((ret = sanitize_scnd_load_segment(file, phdr, filesize, j))) return ret;
+  if ((ret = sanitize_scnd_load_segment(file, phdr, filesize, j))) return ret;
   ret = phdr[j].p_offset - (phdr[i].p_offset + phdr[i].p_filesz);
+  if (ret < PAYLOAD_SIZE) return OOPS_NOCAVE;
 
   printf("cave: %d - size of payload: %lu\n", ret, PAYLOAD_SIZE);
 
@@ -101,17 +107,14 @@ if ((ret = sanitize_scnd_load_segment(file, phdr, filesize, j))) return ret;
   off_newentry = phdr[i].p_offset + phdr[i].p_filesz;
 
   patch.key_size = KEYLEN;
-  /* encrypt(file, &patch, phdr[i].p_vaddr); */
+  if ((ret = encrypt(file, &patch, phdr[i].p_vaddr))) return ret;
 
   ft_memcpy((void *)file + off_newentry, payload, PAYLOAD_SIZE);
-  /* patch code */
   ft_memcpy((void *)file + off_newentry + (PAYLOAD_SIZE - sizeof(t_patch)),
             &patch, sizeof(t_patch));
 
   phdr[i].p_filesz += PAYLOAD_SIZE;
   phdr[i].p_memsz += PAYLOAD_SIZE;
 
-  ret = OOPS_NOCAVE * (ret < PAYLOAD_SIZE) + ret * (ret >= PAYLOAD_SIZE);
-
-  return ret;
+  return EXIT_SUCCESS;
 }

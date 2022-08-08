@@ -17,6 +17,7 @@ int oops_error(unsigned int err) {
       {OOPS_BAD_PHDR, "program header corrupted\n\0"},
       {OOPS_BAD_SHDR, "section header corrupted\n\0"},
       {OOPS_NO_TEXT, "no .text with expected permissions found\n\0"},
+      {OOPS_READ, "read() error\n\0"},
   };
 
   if (err > OOPS_NB) err = OOPS_UND;

@@ -21,7 +21,7 @@
 
 #define KEYLEN 64
 
-#define OOPS_NB 12
+#define OOPS_NB 13
 #define OOPS_SIZE 48
 
 typedef enum {
@@ -37,6 +37,7 @@ typedef enum {
   OOPS_BAD_PHDR,
   OOPS_BAD_SHDR,
   OOPS_NO_TEXT,
+  OOPS_READ,
 } e_oops;
 
 typedef struct s_patch {
