@@ -38,7 +38,8 @@ static int sanitize_exec_load_segment(const Elf64_Ehdr *file, Elf64_Phdr *phdr,
                                       const int filesize, int i) {
   if (i == file->e_phnum) return OOPS_NO_LOAD;
   if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
-  phdr[i].p_flags |= PF_W;  // TODO delete this and replace with mprotect in payload
+  phdr[i].p_flags |=
+      PF_W;  // TODO delete this and replace with mprotect in payload
   return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz ||
                            file->e_entry < phdr[i].p_vaddr ||
                            file->e_entry > phdr[i].p_vaddr + phdr[i].p_memsz));
@@ -69,12 +70,9 @@ static int encrypt(Elf64_Ehdr *file, t_patch *patch, Elf64_Addr vaddr) {
   char *ptr = (char *)file + (patch->main_entry - vaddr);
 
   if ((j = get_random_key(patch->key))) return j;
-  ft_strncpy(patch->key,
-             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789()*",
-             64);
-  for (int i = 0; i < len; i++) {
-    j = (0 * (j == patch->key_size)) + ((j + 1) * (j < patch->key_size));
-    /* ptr[i] ^= (patch->key)[j]; */
+  for (int i = 0; i < len; i++, j++) {
+    if (j == patch->key_size) j = 0;
+    ptr[i] ^= (patch->key)[j];
   }
   return 0;
 }
@@ -82,7 +80,7 @@ static int encrypt(Elf64_Ehdr *file, t_patch *patch, Elf64_Addr vaddr) {
 unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   char payload[] = PAYLOAD;
   Elf64_Phdr *phdr;
-  Elf64_Off off_newentry;
+  Elf64_Off payload_off;
   t_patch patch;
   int i, j, ret;
 
@@ -99,18 +97,19 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   ret = phdr[j].p_offset - (phdr[i].p_offset + phdr[i].p_filesz);
   if (ret < PAYLOAD_SIZE) return OOPS_NOCAVE;
 
-  printf("cave: %d - size of payload: %lu\n", ret, PAYLOAD_SIZE);
+  printf("cave: %d - size of payload: %lu - size of patch: %lu\n", ret,
+         PAYLOAD_SIZE, sizeof(patch));
 
   patch.main_entry = file->e_entry;
   file->e_entry = phdr[i].p_vaddr + phdr[i].p_filesz;
   patch.payload_entry = file->e_entry;
-  off_newentry = phdr[i].p_offset + phdr[i].p_filesz;
+  payload_off = phdr[i].p_offset + phdr[i].p_filesz;
 
   patch.key_size = KEYLEN;
   if ((ret = encrypt(file, &patch, phdr[i].p_vaddr))) return ret;
 
-  ft_memcpy((void *)file + off_newentry, payload, PAYLOAD_SIZE);
-  ft_memcpy((void *)file + off_newentry + (PAYLOAD_SIZE - sizeof(t_patch)),
+  ft_memcpy((void *)file + payload_off, payload, PAYLOAD_SIZE);
+  ft_memcpy((void *)file + payload_off + (PAYLOAD_SIZE - sizeof(t_patch)),
             &patch, sizeof(t_patch));
 
   phdr[i].p_filesz += PAYLOAD_SIZE;
