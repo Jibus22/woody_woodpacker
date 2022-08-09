@@ -11,25 +11,20 @@ _start:
        lea     rsi, [rel msg]  ;2eme arg
        
 			 xor     rax, rax
-       lea     rax, [rsi + (_start - msg)] ; rax = l'adresse de _start
-			 xor     r8, r8
-       add     r8, qword [rsi + (payload_entry - msg)]
-       sub     r8, qword [rsi + (main_entry - msg)]; r8 = len (payload - main)
-       sub     rax, r8 ; rax = _start - len (= début du code pgm, en mémoire)
-			 push    rax; save it
+			 xor     r11, r11
+       lea     rax, [rsi + (_start - msg)]
+       mov     r11, rax
+       sub     r11, qword [rsi + (text_offset - msg)]
+       sub     rax, qword [rsi + (entry_offset - msg)]
+			 push    rax
 
-			 xor     rcx, rcx ; i = 0
-			 xor     rdx, rdx ; j = 0
+			 xor     rcx, rcx
+			 xor     rdx, rdx
+			 xor     r8, r8
 			 xor     r9, r9
 			 xor     r10, r10
 
-
-;mov rdi, rax
-;mov rax, 10 ; mprotect
-;mov rsi, r8
-;mov rdx, 0x7 ; PROT_READ | PROT_WRITE | PROT_EXEC
-;syscall
-
+       mov     r8, qword [rsi + (text_len - msg)]; r8 = len (payload - main)
        lea     r9, [rsi + (key - msg)]
 
 			 test_loop:
@@ -40,8 +35,7 @@ _start:
 			 xor     rdx, rdx
 			 continue:
 			 mov     r10b, byte[r9 + rdx]
-			 ;mov     r9b, byte[rel key + rdx] ; r9b = key[j]
-			 xor     byte[rax + rcx], r10b
+			 xor     byte[r11 + rcx], r10b
 			 inc     rcx
 			 inc     rdx
 			 jmp     test_loop
@@ -50,19 +44,21 @@ _start:
 
        xor     eax, eax
        xor     edx, edx
-			 xor     rdi, rdi ; j = 0
+			 xor     rdi, rdi
        inc     eax             ;eax = 1 (linux write syscall)
        mov     edi, eax        ;1er argument rdi = 1
        mov     dl, 14          ;3eme argument (rdx)
        syscall
        
        pop     rax
-       pop     rdx
+       pop	   rdx             ;dunno why it segf if I don't push/pop rdx
+       
        push    rax
        ret
 
 msg           db "....WOODY....",10
-main_entry    dq 0x1a1b2a2b3a3b4a4b
-payload_entry dq 0x5a5b6a6b7a7b8a8b
+entry_offset  dq 0x1a1b2a2b3a3b4a4b
+text_offset   dq 0x1a1b2a2b3a3b4a4b
+text_len      dq 0x1a1b2a2b3a3b4a4b
 key_size      dq 0x3333333322222222
 key           times 64 db 0x42

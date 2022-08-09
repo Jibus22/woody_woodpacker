@@ -1,29 +1,5 @@
 #include "woody.h"
 
-/* static int sanitize_shdr(const Elf64_Ehdr *file, const Elf64_Shdr *shdr, */
-/*                          const int filesize, int j) { */
-/*   if (j == file->e_shnum) return OOPS_NO_TEXT; */
-/*   return (OOPS_BAD_SHDR * 0); */
-/* } */
-
-/* static unsigned int get_text_data(const Elf64_Ehdr *file, const int filesize)
- * { */
-/*   Elf64_Shdr *shdr; */
-/*   char *name; */
-/*   int j, ret; */
-
-/*   shdr = (Elf64_Shdr *)((char *)file + file->e_shoff); */
-/*   name = (char *)((char *)file + shdr[file->e_shstrndx].sh_offset); */
-/*   for (j = 0; j < file->e_shnum; j++) */
-/*     if (shdr[j].sh_type == SHT_PROGBITS && shdr[j].sh_flags & SHF_EXECINSTR
- * && */
-/*         shdr[j].sh_flags & SHF_ALLOC && */
-/*         !ft_strncmp(".text\0", name + shdr[j].sh_name, 6)) */
-/*       break; */
-/*   if ((ret = sanitize_shdr(file, shdr, filesize, j))) return ret; */
-/*   return ret; */
-/* } */
-
 static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
   return (OOPS_BAD_ELF *
           (filesize < sizeof(Elf64_Ehdr) ||
@@ -32,25 +8,6 @@ static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
            sizeof(Elf64_Phdr) != file->e_phentsize ||
            (file->e_phoff + (file->e_phnum * file->e_phentsize)) > filesize ||
            file->e_shnum <= file->e_shstrndx));
-}
-
-static int sanitize_exec_load_segment(const Elf64_Ehdr *file, Elf64_Phdr *phdr,
-                                      const int filesize, int i) {
-  if (i == file->e_phnum) return OOPS_NO_LOAD;
-  if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
-  phdr[i].p_flags |=
-      PF_W;  // TODO delete this and replace with mprotect in payload
-  return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz ||
-                           file->e_entry < phdr[i].p_vaddr ||
-                           file->e_entry > phdr[i].p_vaddr + phdr[i].p_memsz));
-}
-
-static int sanitize_scnd_load_segment(const Elf64_Ehdr *file,
-                                      const Elf64_Phdr *phdr,
-                                      const int filesize, int i) {
-  if (i == file->e_phnum) return OOPS_NO_LOAD;
-  if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
-  return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz));
 }
 
 static int get_random_key(char *key) {
@@ -64,56 +21,54 @@ static int get_random_key(char *key) {
   return 0;
 }
 
-static int encrypt(Elf64_Ehdr *file, t_patch *patch, Elf64_Addr vaddr) {
-  int j;
-  unsigned long len = patch->payload_entry - patch->main_entry;
-  char *ptr = (char *)file + (patch->main_entry - vaddr);
+static int encrypt(char *ptr, unsigned long len, const t_patch *patch) {
+  int j = 0;
 
-  if ((j = get_random_key(patch->key))) return j;
   for (int i = 0; i < len; i++, j++) {
-    if (j == patch->key_size) j = 0;
+    j = (0 * (j == patch->key_size)) + (j * (j < patch->key_size));
     ptr[i] ^= (patch->key)[j];
   }
   return 0;
 }
 
+static void D_PRINT_PATCH(const t_patch *patch) {
+  printf("entryoff: 0x%lx, txtoffset: 0x%lx, txtlen: 0x%lx\n",
+         patch->entry_offset, patch->text_offset, patch->text_len);
+}
+
 unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   char payload[] = PAYLOAD;
-  Elf64_Phdr *phdr;
   Elf64_Off payload_off;
+  t_woody woody;
   t_patch patch;
-  int i, j, ret;
+  int ret;
 
   if ((ret = sanitize_hdr(file, filesize))) return ret;
+  if ((ret = get_load_segment(file, filesize, &woody))) return ret;
+  if ((ret = get_text_section(file, filesize, &woody))) return ret;
 
-  phdr = (Elf64_Phdr *)((char *)file + file->e_phoff);
-  for (i = 0; i < file->e_phnum; i++)
-    if (phdr[i].p_type == PT_LOAD && phdr[i].p_flags & PF_X) break;
-  if ((ret = sanitize_exec_load_segment(file, phdr, filesize, i))) return ret;
-
-  for (j = i + 1; j < file->e_phnum; j++)
-    if (phdr[j].p_type == PT_LOAD) break;
-  if ((ret = sanitize_scnd_load_segment(file, phdr, filesize, j))) return ret;
-  ret = phdr[j].p_offset - (phdr[i].p_offset + phdr[i].p_filesz);
-  if (ret < PAYLOAD_SIZE) return OOPS_NOCAVE;
-
-  printf("cave: %d - size of payload: %lu - size of patch: %lu\n", ret,
-         PAYLOAD_SIZE, sizeof(patch));
-
-  patch.main_entry = file->e_entry;
-  file->e_entry = phdr[i].p_vaddr + phdr[i].p_filesz;
-  patch.payload_entry = file->e_entry;
-  payload_off = phdr[i].p_offset + phdr[i].p_filesz;
-
+  patch.entry_offset =
+      woody.load_seg->p_vaddr + woody.load_seg->p_filesz - file->e_entry;
+  patch.text_offset = woody.load_seg->p_vaddr + woody.load_seg->p_filesz -
+                      woody.text_sec->sh_addr;
+  patch.text_len = woody.text_sec->sh_size;
   patch.key_size = KEYLEN;
-  if ((ret = encrypt(file, &patch, phdr[i].p_vaddr))) return ret;
+  if ((ret = get_random_key(patch.key))) return ret;
+
+  D_PRINT_PATCH(&patch);
+
+  payload_off = woody.load_seg->p_offset + woody.load_seg->p_filesz;
+
+  encrypt((char *)file + woody.text_sec->sh_offset, woody.text_sec->sh_size,
+          &patch);
 
   ft_memcpy((void *)file + payload_off, payload, PAYLOAD_SIZE);
   ft_memcpy((void *)file + payload_off + (PAYLOAD_SIZE - sizeof(t_patch)),
             &patch, sizeof(t_patch));
 
-  phdr[i].p_filesz += PAYLOAD_SIZE;
-  phdr[i].p_memsz += PAYLOAD_SIZE;
+  file->e_entry = woody.load_seg->p_vaddr + woody.load_seg->p_filesz;
+  woody.load_seg->p_filesz += PAYLOAD_SIZE;
+  woody.load_seg->p_memsz += PAYLOAD_SIZE;
 
   return EXIT_SUCCESS;
 }

@@ -22,7 +22,8 @@ CC = clang
 CCFLAGS =
 
 ##### SRCS #####
-SRCS = $(addprefix $(SRCPATH)/, start.c error.c injection_x64.c)
+SRCS = $(addprefix $(SRCPATH)/, start.c error.c injection_x64.c \
+			 get_elf_data.c)
 NASMSRCS = $(addprefix $(SRCPATH)/, payload.s)
 
 OBJ = $(SRCS:$(SRCPATH)/%.c=$(OBJPATH)/%.o)
