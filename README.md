@@ -3,11 +3,12 @@
 A packer is a utility which wrap a binary file. It can compress it and/or encrypt it such a way that this binary, when launched, uncompress/decrypt by itself then run. This can be used to pass throught antivirus analysis or alleviate the target.
 This project only focus on encrypting.
 Conceptually, the packer should :
+
 1. Encrypt text section only (other parts can be sensitive for the pgm loading, like interpreter, headers or libraries)
 2. Inject a shellcode which will be able to decrypt this text section at runtime and give control back to the program
 3. Change entrypoint from program to the shellcode
 
-The project asks that our utility encrypt the target under the name of *woody*. The packed binary will have to, when launched, print `....WOODY....` on stdout to indicate it decrypted itself then execute. Obviously its original behaviour must not be modified.
+The project asks that our utility encrypt the target under the name of _woody_. The packed binary will have to, when launched, print `....WOODY....` on stdout to indicate it decrypted itself then execute. Obviously its original behaviour must not be modified.
 
 ## ELF program header
 
@@ -30,8 +31,8 @@ typedef struct
 } Elf64_Phdr;
 ```
 
-![a6d7fda1fac42cefdda50ea4a5aaeb42.jpg](../_resources/a6d7fda1fac42cefdda50ea4a5aaeb42.jpg)
-*There is an important dichotomy to understand between storage related fields and runtime related fields. In our programm, we will refer to the first to overwrite data while the target is maped to memory whereas our shellcode which executes in runtime (uncrypt a specific area) will refer to the second*
+![a6d7fda1fac42cefdda50ea4a5aaeb42.jpg](./_resources/a6d7fda1fac42cefdda50ea4a5aaeb42.jpg)
+_There is an important dichotomy to understand between storage related fields and runtime related fields. In our programm, we will refer to the first to overwrite data while the target is maped to memory whereas our shellcode which executes in runtime (uncrypt a specific area) will refer to the second_
 
 ## How to write a shellcode
 
@@ -40,6 +41,7 @@ Shellcode found its name at the beggining of exploits. In the first time the mai
 Its better to write it first in assembly because there is more control over registers and final machine code. We also have control over which section we use, and we don't want any strings to be in .rodata or .data but everything in .text because the shellcode will be located in the address space of the target so we can't play to jump to an address to find a string, as it will be an address in the target, which will point to nothing or garbage.
 Shellcode must not include any header because of it will run into a target environnment which we are not sure it loaded the headers/libraries we would want. So a shellcode can only use syscall. Moreover, the smaller the shellcode, the better, so if we don't need 64bit registers it's ok to use 32 bits ones (ex: eax instead of rax), because 64bit registers are often represented with 2 bytes instead of 1 for the 32 bits.
 Finally, in a standalone asm code like the following it's important to `exit()` otherwise it segfault, because we don't have the C runtime environment to initialize the arguments on stack before going to main then exiting after the return of main. We want to test it as a standalone before injecting it.
+
 ```asm
 bits 64
 default rel
@@ -68,7 +70,8 @@ _start:
 
 msg     db "..WOODY..",10
 ```
-*This code writes '..WOODY..' on stdout and exit(42). All this tinkering for exit(42) is to avoid any NULLBYTE*
+
+_This code writes '..WOODY..' on stdout and exit(42). All this tinkering for exit(42) is to avoid any NULLBYTE_
 
 Compile this with `nasm -f elf64 -o print.o print.s && ld -o print print.o` and run `./print` to test the assembly code in a first place.
 If it works, you can objdump it with `objdump -M intel -d print` to verify if there is not to much `0x00` in the machine code. NULL bytes can make the shellcode stops
@@ -76,6 +79,7 @@ into the target.
 
 To finally get the shellcode and test it into a `.c` target, you can compile it flat with `nasm -f bin -o payload print.s`
 then display machine code with xxd: `xxd -i -c 8 < payload | less` :
+
 ```sh
   0x31, 0xc0, 0x99, 0xb2, 0x0a, 0xff, 0xc0, 0x89,
   0xc7, 0x48, 0x8d, 0x35, 0x12, 0x00, 0x00, 0x00,
@@ -85,15 +89,16 @@ then display machine code with xxd: `xxd -i -c 8 < payload | less` :
   0x59, 0x2e, 0x2e, 0x0a
 (END)
 ```
+
 This can be pasted in target source and easily formatted to shellcode string with vim
 or even better/easier, use `hexdump`with correct formatting : `hexdump -v -e '"\\\x\" 1/1 "%02x"' payload`
+
 ```c
 char code[] =
     "\x31\xc0\x99\xb2\x0a\xff\xc0\x89\xc7\x48\x8d\x35\x12\x00\x00\x00\x0f\x05"
     "\xb2\x2a\x31\xc0\xff\xc0\xf6\xe2\x89\xc7\x31\xc0\xb0\x3c\x0f\x05\x2e\x2e"
     "\x57\x4f\x4f\x44\x59\x2e\x2e\x0a";
 ```
-
 
 ## How to test your shellcode
 
@@ -134,30 +139,30 @@ Shellcode properties:
 Uncrypt crypted range.
 Writes `....WOODY....` on stdout.
 Return to the program entrypoint.
-*All needed data is patched to this code*
+_All needed data is patched to this code_
 
 ## Examples
 
-![Capture d’écran 2022-08-10 à 14.28.12.jpg](../_resources/Capture d’écran 2022-08-10 à 14.28.12.jpg)
-*I run here both ET_EXEC and ET_DYN (pie) targets*
+![shell.jpg](./_resources/shell.jpg)
+_I run here both ET_EXEC and ET_DYN (pie) targets_
 
-![vimdiff.jpg](../_resources/vimdiff.jpg)
-*This is a vimdiff of a basic hello_world C pgm with its associated woody at the left. We can see where modifications are and the encrypted .text section*
+![vimdiff.jpg](./_resources/vimdiff.jpg)
+_This is a vimdiff of a basic hello_world C pgm with its associated woody at the left. We can see where modifications are and the encrypted .text section_
 
 ## Miscellaneous
 
-*Anatomy of a binary:*
+_Anatomy of a binary:_
 https://hexterisk.github.io/blog/posts/2020/02/28/anatomy-of-a-binary/
 https://wiki.osdev.org/ELF
-*Shellcode injection:*
+_Shellcode injection:_
 https://dhavalkapil.com/blogs/Shellcode-Injection/
-*How programs get run:*
+_How programs get run:_
 https://lwn.net/Articles/631631/
-*The Curious Case of Position Independent Executables:*
+_The Curious Case of Position Independent Executables:_
 https://eklitzke.org/position-independent-executables
-*asm / nasm:*
+_asm / nasm:_
 https://cs.lmu.edu/~ray/notes/nasmtutorial/
 https://www.cs.uaf.edu/2017/fall/cs301/reference/x86_64.html
 https://elixir.bootlin.com/linux/v4.13/source/arch/x86/entry/syscalls/syscall_64.tbl
-*Intel Syntax Reference Guide*
+_Intel Syntax Reference Guide_
 https://www.fuzzysecurity.com/tutorials/12.html
