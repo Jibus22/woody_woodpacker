@@ -32,7 +32,7 @@ typedef struct
 ```
 
 ![a6d7fda1fac42cefdda50ea4a5aaeb42.jpg](./_resources/a6d7fda1fac42cefdda50ea4a5aaeb42.jpg)
-_There is an important dichotomy to understand between storage related fields and runtime related fields. In our programm, we will refer to the first to overwrite data while the target is maped to memory whereas our shellcode which executes in runtime (uncrypt a specific area) will refer to the second_
+_There is an important dichotomy to understand between storage related fields and runtime related fields. In our program, we will refer to the first to overwrite data while the target is maped to memory whereas our shellcode which executes in runtime (uncrypt a specific area) will refer to the second_
 
 ## How to write a shellcode
 
