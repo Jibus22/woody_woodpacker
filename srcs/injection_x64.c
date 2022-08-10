@@ -1,5 +1,10 @@
 #include "woody.h"
 
+static void D_PRINT_PATCH(const t_patch *patch) {
+  printf("entryoff: 0x%lx, txtoffset: 0x%lx, txtlen: 0x%lx\n",
+         patch->entry_offset, patch->text_offset, patch->text_len);
+}
+
 static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
   return (OOPS_BAD_ELF *
           (filesize < sizeof(Elf64_Ehdr) ||
@@ -31,11 +36,6 @@ static int encrypt(char *ptr, unsigned long len, const t_patch *patch) {
   return 0;
 }
 
-static void D_PRINT_PATCH(const t_patch *patch) {
-  printf("entryoff: 0x%lx, txtoffset: 0x%lx, txtlen: 0x%lx\n",
-         patch->entry_offset, patch->text_offset, patch->text_len);
-}
-
 unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   char payload[] = PAYLOAD;
   Elf64_Off payload_off;
@@ -55,8 +55,7 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   patch.key_size = KEYLEN;
   if ((ret = get_random_key(patch.key))) return ret;
 
-  D_PRINT_PATCH(&patch);
-
+  /* D_PRINT_PATCH(&patch); */
   payload_off = woody.load_seg->p_offset + woody.load_seg->p_filesz;
 
   encrypt((char *)file + woody.text_sec->sh_offset, woody.text_sec->sh_size,
