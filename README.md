@@ -124,26 +124,26 @@ If the shellcode works into this testing target then it's ok to use it into the 
 
 ## Pseudo-code
 
-I'm using the segment padding injection (taking advantage of 0 padding after an executable load segment).
+I'm using the segment padding injection (taking advantage of 0 padding after an executable load segment).\
 
-Map the target in memory (`mmap()`) and sanitize it (looking for ELF).
-Fetch & sanitize the executable LOAD segment.
-Measure size of cave and compare it to the shellcode size.
-Stop if codecave isn't large enough else continue.
-Fetch & sanitize the text section.
-Patch the shellcode with properties found in the load segment and text section.
-Move target program entrypoint to shellcode entrypoint.
+Map the target in memory (`mmap()`) and sanitize it (looking for ELF).\
+Fetch & sanitize the executable LOAD segment.\
+Measure size of cave and compare it to the shellcode size.\
+Stop if codecave isn't large enough else continue.\
+Fetch & sanitize the text section.\
+Patch the shellcode with properties found in the load segment and text section.\
+Move target program entrypoint to shellcode entrypoint.\
 Writes this memory to a new file named **woody**.
 
-Shellcode properties:
-Uncrypt crypted range.
-Writes `....WOODY....` on stdout.
-Return to the program entrypoint.
-_All needed data is patched to this code_
+Shellcode properties:\
+Uncrypt crypted range.\
+Writes `....WOODY....` on stdout.\
+Return to the program entrypoint.\
+_All needed data is patched to this code_\
 
 ## Examples
 
-![shell.jpg](./_resources/shell.jpg)
+![shell.jpg](./_resources/shell.jpg) \
 _I run here both ET_EXEC and ET_DYN (pie) targets_
 
 ![vimdiff.jpg](./_resources/vimdiff.jpg)
@@ -151,18 +151,18 @@ _This is a vimdiff of a basic hello_world C pgm with its associated woody at the
 
 ## Miscellaneous
 
-_Anatomy of a binary:_
-https://hexterisk.github.io/blog/posts/2020/02/28/anatomy-of-a-binary/
-https://wiki.osdev.org/ELF
-_Shellcode injection:_
-https://dhavalkapil.com/blogs/Shellcode-Injection/
-_How programs get run:_
-https://lwn.net/Articles/631631/
-_The Curious Case of Position Independent Executables:_
-https://eklitzke.org/position-independent-executables
-_asm / nasm:_
-https://cs.lmu.edu/~ray/notes/nasmtutorial/
-https://www.cs.uaf.edu/2017/fall/cs301/reference/x86_64.html
-https://elixir.bootlin.com/linux/v4.13/source/arch/x86/entry/syscalls/syscall_64.tbl
-_Intel Syntax Reference Guide_
+_Anatomy of a binary:_\
+https://hexterisk.github.io/blog/posts/2020/02/28/anatomy-of-a-binary/ \
+https://wiki.osdev.org/ELF \
+_Shellcode injection:_ \
+https://dhavalkapil.com/blogs/Shellcode-Injection/ \
+_How programs get run:_\
+https://lwn.net/Articles/631631/ \
+_The Curious Case of Position Independent Executables:_ \
+https://eklitzke.org/position-independent-executables \
+_asm / nasm:_ \
+https://cs.lmu.edu/~ray/notes/nasmtutorial/ \
+https://www.cs.uaf.edu/2017/fall/cs301/reference/x86_64.html \
+https://elixir.bootlin.com/linux/v4.13/source/arch/x86/entry/syscalls/syscall_64.tbl \
+_Intel Syntax Reference Guide_ \
 https://www.fuzzysecurity.com/tutorials/12.html
