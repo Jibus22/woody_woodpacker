@@ -1,0 +1,10 @@
+.ccls
+*.pdf
+*.o
+*.a
+*.so
+*.out
+woody_woodpacker
+woody
+test/log
+test/bin
