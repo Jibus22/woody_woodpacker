@@ -6,8 +6,6 @@ static int sanitize_exec_load_segment(const Elf64_Ehdr *file, Elf64_Phdr *phdr,
                                       const int filesize, int i) {
   if (i == file->e_phnum) return OOPS_NO_LOAD;
   if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
-  /* phdr[i].p_flags |= */
-  /*     PF_W;  // TODO delete this and replace with mprotect in payload */
   return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz ||
                            file->e_entry < phdr[i].p_vaddr ||
                            file->e_entry > phdr[i].p_vaddr + phdr[i].p_memsz));
