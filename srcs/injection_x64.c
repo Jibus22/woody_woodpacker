@@ -51,6 +51,7 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
       woody.load_seg->p_vaddr + woody.load_seg->p_filesz - file->e_entry;
   patch.text_offset = woody.load_seg->p_vaddr + woody.load_seg->p_filesz -
                       woody.text_sec->sh_addr;
+  patch.segment_offset = woody.load_seg->p_memsz;
   patch.text_len = woody.text_sec->sh_size;
   patch.key_size = KEYLEN;
   if ((ret = get_random_key(patch.key))) return ret;

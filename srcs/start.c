@@ -33,7 +33,7 @@ int main(int ac, char **av) {
   if (ret)
     return exit_error(ret, -1, file, size, av[0]);
 
-  if ((fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0744)) == -1)
+  if ((fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0777)) == -1)
     return exit_error(OOPS_OPEN, -1, file, size, av[0]);
   write(fd, file, size);
   munmap(file, size);

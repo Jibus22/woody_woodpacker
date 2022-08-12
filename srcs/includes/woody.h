@@ -48,6 +48,7 @@ typedef struct s_woody {
 typedef struct s_patch {
   Elf64_Off entry_offset; /* offset from payload to pgm entrypoint */
   Elf64_Off text_offset; /* offset from payload to text entrypoint */
+  Elf64_Off segment_offset; /* offset from payload to beginning of segment */
   Elf64_Off text_len;
   Elf64_Off key_size;
   char key[KEYLEN];

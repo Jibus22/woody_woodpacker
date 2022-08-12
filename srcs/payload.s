@@ -9,22 +9,30 @@ _start:
       push   rdx             ;dunno why it segf if I don't push/pop rdx
       
       lea    rsi, [rel msg]  ;2eme arg
+      xor    rdi, rdi
       
-      xor    rax, rax
-      xor    r11, r11
       lea    rax, [rsi + (_start - msg)]
       mov    r11, rax
-      sub    r11, qword [rsi + (text_offset - msg)]
-      sub    rax, qword [rsi + (entry_offset - msg)]
+      mov    rdi, rax
+      sub    r11, [rsi + (text_offset - msg)]
+      sub    rax, [rsi + (entry_offset - msg)]
       push   rax
-      
+
+      mov r8, [rsi + (segment_offset - msg)]
+      push rsi
+      push r11 ;syscall alter r11
+      mov rax, 10
+      sub rdi, r8
+      mov rsi, r8
+      mov rdx, 0x7
+      syscall
+      pop r11
+      pop rsi
+
       xor    rcx, rcx
       xor    rdx, rdx
-      xor    r8, r8
-      xor    r9, r9
-      xor    r10, r10
       
-      mov    r8, qword [rsi + (text_len - msg)]; r8 = len (payload - main)
+      mov    r8, [rsi + (text_len - msg)]; r8 = len (payload - main)
       lea    r9, [rsi + (key - msg)]
       
       test_loop:
@@ -44,7 +52,6 @@ _start:
       
       xor    eax, eax
       xor    edx, edx
-      xor    rdi, rdi
       inc    eax             ;eax = 1 (linux write syscall)
       mov    edi, eax        ;1er argument rdi = 1
       mov    dl, 14          ;3eme argument (rdx)
@@ -56,9 +63,10 @@ _start:
       push   rax
       ret
 
-msg           db "....WOODY....",10
-entry_offset  dq 0x1a1b2a2b3a3b4a4b
-text_offset   dq 0x1a1b2a2b3a3b4a4b
-text_len      dq 0x1a1b2a2b3a3b4a4b
-key_size      dq 0x3333333322222222
-key           times 64 db 0x42
+msg             db "....WOODY....",10
+entry_offset    dq 0x1a1b2a2b3a3b4a4b
+text_offset     dq 0x1a1b2a2b3a3b4a4b
+segment_offset  dq 0x1a1b2a2b3a3b4a4b
+text_len        dq 0x1a1b2a2b3a3b4a4b
+key_size        dq 0x3333333322222222
+key             times 64 db 0x42
