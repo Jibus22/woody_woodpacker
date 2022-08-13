@@ -7,36 +7,33 @@ static int check_elf_ident(const char *file) {
           (file[EI_VERSION] != EV_CURRENT));
 }
 
-static int injection_x32() { return 0; }
+static t_ret injection_x32() { return ret_wrap(0, 0, NULL); }
 
 int main(int ac, char **av) {
   int fd;
-  unsigned int ret;
-  off_t size;
+  t_ret ret;
+  off_t size = 0;
   void *file;
 
-  if (ac != 2) return exit_error(OOPS_BAD_ARG_NB, -1, NULL, 0, av[0]);
+  if (ac != 2)
+    return exit_error(ret_wrap(OOPS_BAD_ARG_NB, 0, NULL), -1, size, av[0]);
   if ((fd = open(av[ac - 1], O_RDONLY)) == -1)
-    return exit_error(OOPS_OPEN, -1, NULL, 0, av[0]);
+    return exit_error(ret_wrap(OOPS_OPEN, 0, NULL), -1, size, av[0]);
   size = lseek(fd, 0, SEEK_END);
-  if (size == -1) return exit_error(OOPS_LSEEK, fd, NULL, 0, av[0]);
+  if (size == -1)
+    return exit_error(ret_wrap(OOPS_LSEEK, 0, NULL), fd, size, av[0]);
   file = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-  if (file == MAP_FAILED) return exit_error(OOPS_MMAP, fd, NULL, 0, av[0]);
+  if (file == MAP_FAILED)
+    return exit_error(ret_wrap(OOPS_MMAP, 0, NULL), fd, size, av[0]);
   close(fd);
 
   if (size < 16 || check_elf_ident(file) > 0)
-    return exit_error(OOPS_NOTELF, -1, file, size, av[0]);
+    return exit_error(ret_wrap(OOPS_NOTELF, size, file), -1, size, av[0]);
   if (((char *)file)[EI_CLASS] == ELFCLASS64)
     ret = injection_x64(file, size);
   else
     ret = injection_x32();
-  if (ret)
-    return exit_error(ret, -1, file, size, av[0]);
+  if (ret.err) return exit_error(ret, -1, size, av[0]);
 
-  if ((fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0777)) == -1)
-    return exit_error(OOPS_OPEN, -1, file, size, av[0]);
-  write(fd, file, size);
-  munmap(file, size);
-  close(fd);
   return EXIT_SUCCESS;
 }

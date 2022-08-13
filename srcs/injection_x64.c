@@ -1,8 +1,12 @@
 #include "woody.h"
 
-static void D_PRINT_PATCH(const t_patch *patch) {
-  printf("entryoff: 0x%lx, txtoffset: 0x%lx, txtlen: 0x%lx\n",
-         patch->entry_offset, patch->text_offset, patch->text_len);
+static void print_key(const unsigned char *key, unsigned int size) {
+  printf("KEY=\n");
+  for (unsigned int i = 0; i < size; i++) {
+    if (i && i % 8 == 0) printf("\n");
+    printf("\\x%x", (int)key[i]);
+  }
+  printf("\n");
 }
 
 static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
@@ -15,7 +19,7 @@ static int sanitize_hdr(const Elf64_Ehdr *file, const int filesize) {
            file->e_shnum <= file->e_shstrndx));
 }
 
-static int get_random_key(char *key) {
+static int get_random_key(unsigned char *key) {
   int fd, ret;
 
   fd = open("/dev/urandom", O_RDONLY);
@@ -36,16 +40,33 @@ static int encrypt(char *ptr, unsigned long len, const t_patch *patch) {
   return 0;
 }
 
-unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
+static int write_woody(t_woody *woody, const int filesize) {
+  int fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0777);
+
+  if (fd == -1) return OOPS_OPEN;
+  write(fd, woody->file, woody->filesize);
+  if (woody->filesize == filesize) munmap(woody->file, woody->filesize);
+  else free(woody->file);
+  close(fd);
+  return EXIT_SUCCESS;
+}
+
+t_ret injection_x64(Elf64_Ehdr *file, const int filesize) {
   char payload[] = PAYLOAD;
   Elf64_Off payload_off;
-  t_woody woody;
+  t_woody woody = {file, filesize};
   t_patch patch;
   int ret;
 
-  if ((ret = sanitize_hdr(file, filesize))) return ret;
-  if ((ret = get_load_segment(file, filesize, &woody))) return ret;
-  if ((ret = get_text_section(file, filesize, &woody))) return ret;
+  if ((ret = sanitize_hdr(file, filesize)))
+    return ret_wrap(ret, filesize, file);
+  if ((ret = get_load_segment(file, filesize, &woody)))
+    return ret_wrap(ret, filesize, file);
+  if ((ret = get_text_section(file, filesize, &woody)))
+    return ret_wrap(ret, filesize, file);
+
+  // fonction qui set shift + offset, mais du coup woody->file change et
+  // unmmap file
 
   patch.entry_offset =
       woody.load_seg->p_vaddr + woody.load_seg->p_filesz - file->e_entry;
@@ -54,9 +75,9 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   patch.segment_offset = woody.load_seg->p_memsz;
   patch.text_len = woody.text_sec->sh_size;
   patch.key_size = KEYLEN;
-  if ((ret = get_random_key(patch.key))) return ret;
+  if ((ret = get_random_key(patch.key)))
+    return ret_wrap(ret, woody.filesize, woody.file);
 
-  /* D_PRINT_PATCH(&patch); */
   payload_off = woody.load_seg->p_offset + woody.load_seg->p_filesz;
 
   encrypt((char *)file + woody.text_sec->sh_offset, woody.text_sec->sh_size,
@@ -70,5 +91,8 @@ unsigned int injection_x64(Elf64_Ehdr *file, const int filesize) {
   woody.load_seg->p_filesz += PAYLOAD_SIZE;
   woody.load_seg->p_memsz += PAYLOAD_SIZE;
 
-  return EXIT_SUCCESS;
+  print_key(patch.key, patch.key_size);
+  if ((ret = write_woody(&woody, filesize)))
+    return ret_wrap(ret, woody.filesize, woody.file);
+  return ret_wrap(EXIT_SUCCESS, 0, NULL);
 }

@@ -1,5 +1,10 @@
 #include "woody.h"
 
+t_ret ret_wrap(int err, unsigned int size, void *file) {
+  t_ret ret = {err, size, file};
+  return ret;
+}
+
 int oops_error(unsigned int err) {
   static struct {
     int err_nb;
@@ -25,13 +30,18 @@ int oops_error(unsigned int err) {
   return EXIT_FAILURE;
 }
 
-int exit_error(int err, int fd, void *file, size_t size, char *name) {
+int exit_error(t_ret err, int fd, off_t filesize, char *name) {
   if (fd > -1) close(fd);
-  if (file) munmap(file, size);
+  if (err.file && filesize > 0) {
+    if (err.size == filesize)
+      munmap(err.file, err.size);
+    else
+      free(err.file);
+  }
   write(STDERR_FILENO, name, ft_strlen(name));
   write(STDERR_FILENO, ": ", 2);
-  if (err >= 0)
-    return oops_error(err);
+  if (err.err >= 0)
+    return oops_error(err.err);
   else
     return EXIT_FAILURE;
 }

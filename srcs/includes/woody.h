@@ -40,7 +40,15 @@ typedef enum {
   OOPS_READ,
 } e_oops;
 
+typedef struct s_ret {
+  int err;
+  unsigned int size;
+  void *file;
+} t_ret;
+
 typedef struct s_woody {
+  Elf64_Ehdr *file;
+  Elf64_Off filesize;
   Elf64_Phdr *load_seg;
   Elf64_Shdr *text_sec;
 } t_woody;
@@ -51,11 +59,11 @@ typedef struct s_patch {
   Elf64_Off segment_offset; /* offset from payload to beginning of segment */
   Elf64_Off text_len;
   Elf64_Off key_size;
-  char key[KEYLEN];
+  unsigned char key[KEYLEN];
 } t_patch;
 
 /* injection_x64 */
-unsigned int injection_x64(Elf64_Ehdr *file, const int filesize);
+t_ret injection_x64(Elf64_Ehdr *file, const int filesize);
 
 /* get_elf_data.c */
 unsigned int get_load_segment(const Elf64_Ehdr *file, const int filesize,
@@ -64,7 +72,8 @@ unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
                               t_woody *woody);
 
 /* error.c */
-int exit_error(int err, int fd, void *file, size_t size, char *name);
+t_ret ret_wrap(int err, unsigned int size, void *file);
+int exit_error(t_ret err, int fd, off_t filesize, char *name);
 int oops_error(unsigned int err);
 
 #endif
