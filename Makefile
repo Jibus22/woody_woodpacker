@@ -19,11 +19,11 @@ INC = $(addprefix -I , $(PATH_INCLUDE) $(PATH_INCLUDE2))
 ##### COMPILER #####
 CC = clang
 ##### COMPILATION FLAG #####
-CCFLAGS =
+CCFLAGS = -Wall -Wextra -Werror
 
 ##### SRCS #####
 SRCS = $(addprefix $(SRCPATH)/, start.c error.c injection_x64.c \
-			 get_elf_data.c)
+			 get_elf_data.c utils.c)
 NASMSRCS = $(addprefix $(SRCPATH)/, payload.s)
 
 OBJ = $(SRCS:$(SRCPATH)/%.c=$(OBJPATH)/%.o)

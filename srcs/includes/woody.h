@@ -21,7 +21,10 @@
 
 #define KEYLEN 64
 
-#define OOPS_NB 13
+#define PAGESIZE 4096
+
+#define CREATE_CODECAVE (-42)
+
 #define OOPS_SIZE 48
 
 typedef enum {
@@ -38,6 +41,8 @@ typedef enum {
   OOPS_BAD_SHDR,
   OOPS_NO_TEXT,
   OOPS_READ,
+  OOPS_MALLOC,
+  OOPS_NB,
 } e_oops;
 
 typedef struct s_ret {
@@ -54,8 +59,8 @@ typedef struct s_woody {
 } t_woody;
 
 typedef struct s_patch {
-  Elf64_Off entry_offset; /* offset from payload to pgm entrypoint */
-  Elf64_Off text_offset; /* offset from payload to text entrypoint */
+  Elf64_Off entry_offset;   /* offset from payload to pgm entrypoint */
+  Elf64_Off text_offset;    /* offset from payload to text entrypoint */
   Elf64_Off segment_offset; /* offset from payload to beginning of segment */
   Elf64_Off text_len;
   Elf64_Off key_size;
@@ -66,8 +71,8 @@ typedef struct s_patch {
 t_ret injection_x64(Elf64_Ehdr *file, const int filesize);
 
 /* get_elf_data.c */
-unsigned int get_load_segment(const Elf64_Ehdr *file, const int filesize,
-                              t_woody *woody);
+int get_load_segment(const Elf64_Ehdr *file, const int filesize,
+                     t_woody *woody);
 unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
                               t_woody *woody);
 
@@ -75,5 +80,9 @@ unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
 t_ret ret_wrap(int err, unsigned int size, void *file);
 int exit_error(t_ret err, int fd, off_t filesize, char *name);
 int oops_error(unsigned int err);
+
+/* utils.c */
+void print_key(const unsigned char *key, unsigned int size);
+int get_random_key(unsigned char *key);
 
 #endif

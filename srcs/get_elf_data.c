@@ -3,7 +3,7 @@
 /* LOAD SEGMENT */
 
 static int sanitize_exec_load_segment(const Elf64_Ehdr *file, Elf64_Phdr *phdr,
-                                      const int filesize, int i) {
+                                      const unsigned long filesize, int i) {
   if (i == file->e_phnum) return OOPS_NO_LOAD;
   if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
   return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz ||
@@ -13,14 +13,14 @@ static int sanitize_exec_load_segment(const Elf64_Ehdr *file, Elf64_Phdr *phdr,
 
 static int sanitize_scnd_load_segment(const Elf64_Ehdr *file,
                                       const Elf64_Phdr *phdr,
-                                      const int filesize, int i) {
+                                      const unsigned long filesize, int i) {
   if (i == file->e_phnum) return OOPS_NO_LOAD;
   if (phdr[i].p_type != PT_LOAD) return OOPS_NOCAVE;
   return (OOPS_BAD_PHDR * (filesize < phdr[i].p_offset + phdr[i].p_filesz));
 }
 
-unsigned int get_load_segment(const Elf64_Ehdr *file, const int filesize,
-                              t_woody *woody) {
+int get_load_segment(const Elf64_Ehdr *file, const int filesize,
+                     t_woody *woody) {
   Elf64_Phdr *phdr;
   int i, j, ret;
 
@@ -34,12 +34,10 @@ unsigned int get_load_segment(const Elf64_Ehdr *file, const int filesize,
   if ((ret = sanitize_scnd_load_segment(file, phdr, filesize, j))) return ret;
 
   ret = phdr[j].p_offset - (phdr[i].p_offset + phdr[i].p_filesz);
-  if (ret < PAYLOAD_SIZE) return OOPS_NOCAVE;
-
   woody->load_seg = &phdr[i];
-
   printf("cave: %d - size of payload: %lu - size of patch: %lu\n", ret,
          PAYLOAD_SIZE, sizeof(t_patch));
+  if ((unsigned long)ret < PAYLOAD_SIZE) return CREATE_CODECAVE;
 
   return EXIT_SUCCESS;
 }
@@ -48,6 +46,8 @@ unsigned int get_load_segment(const Elf64_Ehdr *file, const int filesize,
 
 static int sanitize_shdr(const Elf64_Ehdr *file, const Elf64_Shdr *shdr,
                          const int filesize, int j) {
+  (void)shdr;
+  (void)filesize;
   if (j == file->e_shnum) return OOPS_NO_TEXT;
   return (OOPS_BAD_SHDR * 0);
 }
@@ -67,5 +67,5 @@ unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
       break;
   if ((ret = sanitize_shdr(file, shdr, filesize, j))) return ret;
   woody->text_sec = &shdr[j];
-  return ret;
+  return EXIT_SUCCESS;
 }
