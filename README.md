@@ -38,8 +38,10 @@ _There is an important dichotomy to understand between storage related fields an
 
 Shellcode found its name at the beggining of exploits. In the first time the main goal of injection was to open a shell. It's not the case anymore as it can be used to `chmod 777` or open another program, a connection with a client... There is many usages. So, it could be **named payload** or **injection code**.
 
-Its better to write it first in assembly because there is more control over registers and final machine code. We also have control over which section we use, and we don't want any strings to be in `.rodata` or `.data` but everything in `.text` because the shellcode will be located in the address space of the target so we can't play to jump to an address to find a string, as it will be an address in the target, which will point to nothing or garbage.\
-Shellcode must not include any header because of it will run into a target environnment which we are not sure it loaded the headers/libraries we would want. So a shellcode can only use `syscall`. Moreover, the smaller the shellcode, the better, so if we don't need 64bit registers it's ok to use 32 bits ones (ex: `eax` instead of `rax`), because 64bit registers are often represented with 2 bytes instead of 1 for the 32 bits.\
+Its better to write it first in assembly because there is more control over registers and final machine code. We also have control over which section we use, and we don't want any strings to be in `.rodata` or `.data` but everything in `.text` because the shellcode will be located in the address space of the target so we can't play to jump to an address to find a string, as it will be an address in the target, which will point to nothing or garbage.
+
+Shellcode must not include any header because of it will run into a target environnment which we are not sure it loaded the headers/libraries we would want. So a shellcode can only use `syscall`. Moreover, the smaller the shellcode, the better, so if we don't need 64bit registers it's ok to use 32 bits ones (ex: `eax` instead of `rax`), because 64bit registers are often represented with 2 bytes instead of 1 for the 32 bits.
+
 Finally, in a standalone asm code like the following it's important to `exit()` otherwise it segfault, because we don't have the C runtime environment to initialize the arguments on stack before going to main then exiting after the return of main. We want to test it as a standalone before injecting it.
 
 ```asm
