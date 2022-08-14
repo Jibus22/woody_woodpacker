@@ -56,7 +56,7 @@ typedef struct s_woody {
   Elf64_Off filesize;
   Elf64_Phdr *load_seg;
   Elf64_Shdr *text_sec;
-} t_woody;
+} t_woody64;
 
 typedef struct s_patch {
   Elf64_Off entry_offset;   /* offset from payload to pgm entrypoint */
@@ -72,9 +72,9 @@ t_ret injection_x64(Elf64_Ehdr *file, const int filesize);
 
 /* get_elf_data.c */
 int get_load_segment(const Elf64_Ehdr *file, const int filesize,
-                     t_woody *woody);
+                     t_woody64 *woody);
 unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
-                              t_woody *woody);
+                              t_woody64 *woody);
 
 /* error.c */
 t_ret ret_wrap(int err, unsigned int size, void *file);
@@ -84,5 +84,6 @@ int oops_error(unsigned int err);
 /* utils.c */
 void print_key(const unsigned char *key, unsigned int size);
 int get_random_key(unsigned char *key);
+void print_info(int ret);
 
 #endif

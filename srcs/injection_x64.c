@@ -20,7 +20,7 @@ static int encrypt(char *ptr, unsigned long len, const t_patch *patch) {
   return 0;
 }
 
-static int write_woody(t_woody *woody, const unsigned long filesize) {
+static int write_woody(t_woody64 *woody, const unsigned long filesize) {
   int fd = open("woody", O_RDWR | O_TRUNC | O_CREAT, 0777);
 
   if (fd == -1) return OOPS_OPEN;
@@ -33,7 +33,7 @@ static int write_woody(t_woody *woody, const unsigned long filesize) {
   return EXIT_SUCCESS;
 }
 
-static int init_patch(t_patch *patch, const t_woody *woody) {
+static int init_patch(t_patch *patch, const t_woody64 *woody) {
   int ret = get_random_key(patch->key);
 
   if (ret) return ret;
@@ -47,7 +47,7 @@ static int init_patch(t_patch *patch, const t_woody *woody) {
   return EXIT_SUCCESS;
 }
 
-static int create_codecave(t_woody *woody) {
+static int create_codecave(t_woody64 *woody) {
   unsigned int size = ((PAYLOAD_SIZE / PAGESIZE) + 1) * PAGESIZE,
                offset = woody->load_seg->p_offset + woody->load_seg->p_filesz;
   void *ptr = malloc(woody->filesize + size);
@@ -56,16 +56,11 @@ static int create_codecave(t_woody *woody) {
   int j;
 
   if (!ptr) return OOPS_MALLOC;
-  printf("Creating codecave...\n");
+  write(1, "Creating codecave...\n", 21);
   for (j = 0; j < woody->file->e_phnum; j++)
     if (phdr[j].p_offset > offset) phdr[j].p_offset += size;
-  /* if I modify p_vaddr, it segfault... It does even not go to payload entry */
-  for (j = 0; j < woody->file->e_shnum; j++) {
-    if (shdr[j].sh_offset > offset) {
-      shdr[j].sh_offset += size;
-      shdr[j].sh_addr += size;
-    }
-  }
+  for (j = 0; j < woody->file->e_shnum; j++)
+    if (shdr[j].sh_offset > offset) shdr[j].sh_offset += size;
   if (woody->file->e_shoff > offset) woody->file->e_shoff += size;
   ft_memcpy(ptr, woody->file, offset);
   ft_memset((char *)ptr + offset, 0, size);
@@ -78,7 +73,7 @@ static int create_codecave(t_woody *woody) {
   return EXIT_SUCCESS;
 }
 
-static void inject(t_woody *woody, const t_patch *patch) {
+static void inject(t_woody64 *woody, const t_patch *patch) {
   char payload[] = PAYLOAD;
   Elf64_Off payload_off;
 
@@ -94,7 +89,7 @@ static void inject(t_woody *woody, const t_patch *patch) {
 }
 
 t_ret injection_x64(Elf64_Ehdr *file, const int filesize) {
-  t_woody woody = {file, filesize, NULL, NULL};
+  t_woody64 woody = {file, filesize, NULL, NULL};
   t_patch patch;
   int ret;
 

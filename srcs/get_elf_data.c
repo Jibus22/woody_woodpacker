@@ -20,7 +20,7 @@ static int sanitize_scnd_load_segment(const Elf64_Ehdr *file,
 }
 
 int get_load_segment(const Elf64_Ehdr *file, const int filesize,
-                     t_woody *woody) {
+                     t_woody64 *woody) {
   Elf64_Phdr *phdr;
   int i, j, ret;
 
@@ -34,9 +34,8 @@ int get_load_segment(const Elf64_Ehdr *file, const int filesize,
   if ((ret = sanitize_scnd_load_segment(file, phdr, filesize, j))) return ret;
 
   ret = phdr[j].p_offset - (phdr[i].p_offset + phdr[i].p_filesz);
+  print_info(ret);
   woody->load_seg = &phdr[i];
-  printf("cave: %d - size of payload: %lu - size of patch: %lu\n", ret,
-         PAYLOAD_SIZE, sizeof(t_patch));
   if ((unsigned long)ret < PAYLOAD_SIZE) return CREATE_CODECAVE;
 
   return EXIT_SUCCESS;
@@ -53,7 +52,7 @@ static int sanitize_shdr(const Elf64_Ehdr *file, const Elf64_Shdr *shdr,
 }
 
 unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
-                              t_woody *woody) {
+                              t_woody64 *woody) {
   Elf64_Shdr *shdr;
   char *name;
   int j, ret;
