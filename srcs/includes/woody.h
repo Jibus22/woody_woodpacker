@@ -76,6 +76,9 @@ int get_load_segment(const Elf64_Ehdr *file, const int filesize,
 unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
                               t_woody64 *woody);
 
+/* encrypt.s */
+void encrypt(char *ptr, unsigned long len, const t_patch *patch);
+
 /* error.c */
 t_ret ret_wrap(int err, unsigned int size, void *file);
 int exit_error(t_ret err, int fd, off_t filesize, char *name);

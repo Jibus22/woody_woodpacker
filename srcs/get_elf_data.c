@@ -44,11 +44,9 @@ int get_load_segment(const Elf64_Ehdr *file, const int filesize,
 /* TEXT SECTION */
 
 static int sanitize_shdr(const Elf64_Ehdr *file, const Elf64_Shdr *shdr,
-                         const int filesize, int j) {
-  (void)shdr;
-  (void)filesize;
-  if (j == file->e_shnum) return OOPS_NO_TEXT;
-  return (OOPS_BAD_SHDR * 0);
+                         const unsigned long filesize, int i) {
+  if (i == file->e_shnum) return OOPS_NO_TEXT;
+  return (OOPS_BAD_SHDR * (filesize < shdr[i].sh_offset + shdr[i].sh_size));
 }
 
 unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,

@@ -6,18 +6,10 @@ static int sanitize_hdr(const Elf64_Ehdr *file, const unsigned long filesize) {
            file->e_ehsize != sizeof(Elf64_Ehdr) ||
            (file->e_type != ET_EXEC && file->e_type != ET_DYN) ||
            sizeof(Elf64_Phdr) != file->e_phentsize ||
+           sizeof(Elf64_Shdr) != file->e_shentsize ||
            (file->e_phoff + (file->e_phnum * file->e_phentsize)) > filesize ||
+           (file->e_shoff + (file->e_shnum * file->e_shentsize)) > filesize ||
            file->e_shnum <= file->e_shstrndx));
-}
-
-static int encrypt(char *ptr, unsigned long len, const t_patch *patch) {
-  unsigned long j = 0;
-
-  for (unsigned long i = 0; i < len; i++, j++) {
-    j = (0 * (j == patch->key_size)) + (j * (j < patch->key_size));
-    ptr[i] ^= (patch->key)[j];
-  }
-  return 0;
 }
 
 static int write_woody(t_woody64 *woody, const unsigned long filesize) {

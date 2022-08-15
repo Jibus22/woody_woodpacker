@@ -15,39 +15,44 @@ HEADERS = $(PATH_INCLUDE)/*.h
 HEADERS += $(PATH_INCLUDE2)/*.h
 INC = $(addprefix -I , $(PATH_INCLUDE) $(PATH_INCLUDE2))
 
-
+PAYLOAD = $(SRCPATH)/payload.s
 ##### COMPILER #####
 CC = clang
 ##### COMPILATION FLAG #####
 CCFLAGS = -Wall -Wextra -Werror
 
 ##### SRCS #####
+PAYLOADSRCS = $(addprefix $(SRCPATH)/, payload.s)
+NASMSRCS = $(addprefix $(SRCPATH)/, encrypt.s)
 SRCS = $(addprefix $(SRCPATH)/, start.c error.c injection_x64.c \
 			 get_elf_data.c utils.c)
-NASMSRCS = $(addprefix $(SRCPATH)/, payload.s)
 
-OBJ = $(SRCS:$(SRCPATH)/%.c=$(OBJPATH)/%.o)
+PAYLOADOBJ = $(PAYLOADSRCS:$(SRCPATH)/%.s=$(OBJPATH)/%.o)
 NASMOBJ = $(NASMSRCS:$(SRCPATH)/%.s=$(OBJPATH)/%.o)
+OBJ = $(SRCS:$(SRCPATH)/%.c=$(OBJPATH)/%.o)
 
 
 ### RULES ###
 
 all: $(NAME)
 
-$(NAME): $(LFT) $(OBJPATH) $(NASMOBJ) $(OBJ)
-	$(CC) $(CCFLAGS) -o $@ $(OBJ) $(LFT)
-
-$(OBJPATH):
-	@if [ ! -d $(OBJPATH) ]; then mkdir $(OBJPATH); fi
+$(NAME): $(LFT) $(OBJPATH) $(PAYLOADOBJ) $(NASMOBJ) $(OBJ)
+	$(CC) $(CCFLAGS) -o $@ $(OBJ) $(NASMOBJ) $(LFT)
 
 $(LFT):
 	@make -C $(LIBFTPATH)
 
-$(OBJPATH)/%.o: $(SRCPATH)/%.c srcs/payload.s $(HEADERS)
-	$(CC) $(CCFLAGS) $(INC) -c $< -o $@ -DPAYLOAD=\"`/usr/bin/hexdump -v -e '"\\\x" 1/1 "%02x"' $(OBJPATH)/payload.o`\"
+$(OBJPATH):
+	@if [ ! -d $(OBJPATH) ]; then mkdir $(OBJPATH); fi
 
-$(OBJPATH)/%.o: $(SRCPATH)/%.s
+$(PAYLOADOBJ): $(PAYLOADSRCS)
 	nasm -f bin -o $@ $<
+
+$(NASMOBJ): $(NASMSRCS)
+	nasm -f elf64 -o $@ $<
+
+$(OBJPATH)/%.o: $(SRCPATH)/%.c $(PAYLOADSRCS) $(HEADERS)
+	$(CC) $(CCFLAGS) $(INC) -c $< -o $@ -DPAYLOAD=\"`/usr/bin/hexdump -v -e '"\\\x" 1/1 "%02x"' $(OBJPATH)/payload.o`\"
 
 ### CLEAN ###
 .PHONY: sanitize clean fclean re
@@ -55,7 +60,7 @@ $(OBJPATH)/%.o: $(SRCPATH)/%.s
 clean:
 	@make clean -C $(LIBFTPATH)
 	rm -f woody
-	rm -rf $(OBJ) $(NASMOBJ)
+	rm -rf $(OBJ) $(NASMOBJ) $(PAYLOADOBJ)
 
 fclean: clean
 	@make fclean -C $(LIBFTPATH)
