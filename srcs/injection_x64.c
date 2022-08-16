@@ -48,7 +48,7 @@ static int create_codecave(t_woody64 *woody) {
   int j;
 
   if (!ptr) return OOPS_MALLOC;
-  write(1, "Creating codecave...\n", 21);
+  write(STDOUT_FILENO, "Creating codecave...\n", 21);
   for (j = 0; j < woody->file->e_phnum; j++)
     if (phdr[j].p_offset > offset) phdr[j].p_offset += size;
   for (j = 0; j < woody->file->e_shnum; j++)

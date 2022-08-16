@@ -24,8 +24,11 @@ CCFLAGS = -Wall -Wextra -Werror
 ##### SRCS #####
 PAYLOADSRCS = $(addprefix $(SRCPATH)/, payload.s)
 NASMSRCS = $(addprefix $(SRCPATH)/, encrypt.s)
-SRCS = $(addprefix $(SRCPATH)/, start.c error.c injection_x64.c \
-			 get_elf_data.c utils.c)
+SRCS = $(addprefix $(SRCPATH)/, error.c \
+			 get_elf_data.c \
+			 injection_x64.c \
+			 start.c \
+			 utils.c)
 
 PAYLOADOBJ = $(PAYLOADSRCS:$(SRCPATH)/%.s=$(OBJPATH)/%.o)
 NASMOBJ = $(NASMSRCS:$(SRCPATH)/%.s=$(OBJPATH)/%.o)
