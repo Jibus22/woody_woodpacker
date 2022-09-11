@@ -39,7 +39,7 @@ int get_load_segment(const Elf64_Ehdr *file, const int filesize,
     return ret;
 
   ret = phdr[j].p_offset - (phdr[i].p_offset + phdr[i].p_filesz);
-  print_info(ret);
+  /* print_info(ret); */
   woody->load_seg = &phdr[i];
   if ((unsigned long)ret < PAYLOAD_SIZE) return CREATE_CODECAVE;
 
