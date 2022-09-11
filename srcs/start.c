@@ -7,7 +7,7 @@ static int check_elf_ident(const char *file) {
           (file[EI_VERSION] != EV_CURRENT));
 }
 
-static t_ret injection_x32() { return ret_wrap(0, 0, NULL); }
+static t_ret injection_x32() { return ret_wrap(OOPS_32BITS, 0, NULL); }
 
 int main(int ac, char **av) {
   int fd;

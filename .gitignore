@@ -7,4 +7,5 @@
 woody_woodpacker
 woody
 test/log
-test/bin
+test/srcs
+!test/corrupted_bin/*.out

@@ -42,7 +42,8 @@ typedef enum {
   OOPS_NO_TEXT,
   OOPS_READ,
   OOPS_MALLOC,
-  OOPS_NB,
+  OOPS_32BITS,
+  OOPS_NB, /* to keep in last position */
 } e_oops;
 
 typedef struct s_ret {
@@ -73,8 +74,8 @@ t_ret injection_x64(Elf64_Ehdr *file, const int filesize);
 /* get_elf_data.c */
 int get_load_segment(const Elf64_Ehdr *file, const int filesize,
                      t_woody64 *woody);
-unsigned int get_text_section(const Elf64_Ehdr *file, const int filesize,
-                              t_woody64 *woody);
+unsigned int get_text_section(const Elf64_Ehdr *file,
+                              const unsigned long filesize, t_woody64 *woody);
 
 /* encrypt.s */
 void encrypt(char *ptr, unsigned long len, const t_patch *patch);

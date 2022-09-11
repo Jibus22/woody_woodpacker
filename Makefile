@@ -19,7 +19,7 @@ PAYLOAD = $(SRCPATH)/payload.s
 ##### COMPILER #####
 CC = clang
 ##### COMPILATION FLAG #####
-CCFLAGS = -Wall -Wextra -Werror
+CCFLAGS = -Wall -Wextra -Werror -g
 
 ##### SRCS #####
 PAYLOADSRCS = $(addprefix $(SRCPATH)/, payload.s)

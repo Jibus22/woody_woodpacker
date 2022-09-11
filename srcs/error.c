@@ -24,6 +24,7 @@ int oops_error(unsigned int err) {
       {OOPS_NO_TEXT, "no .text with expected permissions found\n\0"},
       {OOPS_READ, "read() error\n\0"},
       {OOPS_MALLOC, "malloc() error\n\0"},
+      {OOPS_32BITS, "32bits file not handled\n\0"},
   };
 
   if (err > OOPS_NB) err = OOPS_UND;
